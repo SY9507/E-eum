@@ -15,4 +15,5 @@ __pycache__/
 *.log
 activate_home.bat
 *.md
+!/README.md
 *.claude
