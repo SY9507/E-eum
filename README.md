@@ -32,16 +32,12 @@ KDT 교육과정 중간 팀 프로젝트 · 팀 **다정다감** (3인) · 2026.
 
 1. [프로젝트 배경](#-프로젝트-배경)
 2. [서비스 구성](#-서비스-구성)
-3. [System Architecture](#-system-architecture)
-4. [My Contribution](#-my-contribution)
-5. [덜다 End-to-End Pipeline](#-덜다-end-to-end-data--ai-pipeline)
-6. [Technical Challenges & Solutions](#-technical-challenges--solutions)
-7. [Database](#-database)
-8. [Tech Stack](#-tech-stack)
-9. [프로젝트 구조](#-프로젝트-구조)
-10. [실행 방법](#-실행-방법)
-11. [한계 및 개선 방향](#-한계-및-개선-방향)
-12. [Team](#-team)
+3. [My Contribution](#-my-contribution)
+4. [System Architecture / Pipeline](#-system-architecture)
+5. [Technical Challenges](#-technical-challenges--solutions)
+6. [Database](#-database)
+7. [Tech Stack](#-tech-stack)
+8. [Team](#-team)
 
 ---
 
@@ -66,55 +62,6 @@ KDT 교육과정 중간 팀 프로젝트 · 팀 **다정다감** (3인) · 2026.
 
 <!-- TODO: 서비스별 화면 캡처 (덜다 입력 화면 / 잇다 챗봇 / 나누다 지원기관 지도) -->
 
-## 🏗 System Architecture
-
-```mermaid
-flowchart LR
-    subgraph Client["Frontend · React + Vite"]
-        U["사용자 화면<br/>덜다 · 잇다 · 나누다"]
-        A["관리자 화면<br/>대시보드 · 정책 최신화"]
-    end
-
-    subgraph API["Backend · FastAPI (async)"]
-        AUTH["user<br/>JWT 인증"]
-        DELDA["delda<br/>정책 추천"]
-        ITDA["itda<br/>진로 챗봇"]
-        NANUDA["nanuda<br/>돌봄 공유 · 지원기관"]
-        COMMON["notice · inquiry<br/>notifications · mypage · dashboard"]
-    end
-
-    subgraph Data["Data / AI"]
-        MYSQL[("MySQL<br/>FULLTEXT")]
-        PC[("Pinecone<br/>Vector Index")]
-        GEM["Gemini<br/>LLM · Embedding"]
-    end
-
-    subgraph Ext["External Sources"]
-        GOV["중앙부처 복지서비스 API<br/>(공공데이터포털)"]
-        SEOUL["서울복지포털"]
-        GG["경기청년포털"]
-        OTHER["카카오 로컬 API 등<br/>(잇다·나누다)"]
-    end
-
-    U --> API
-    A --> API
-    API --> MYSQL
-    DELDA --> PC
-    DELDA --> GEM
-    ITDA --> PC
-    ITDA --> GEM
-    NANUDA --> PC
-    NANUDA --> GEM
-    DELDA -.->|수집| GOV
-    DELDA -.->|크롤링| SEOUL
-    DELDA -.->|크롤링| GG
-    NANUDA -.-> OTHER
-```
-
-- 하나의 FastAPI 앱에 서비스별 Router(`delda`, `itda`, `nanuda`, `notice`, `inquiry` …)를 등록하는 모듈형 구조입니다.
-- DB 접근은 SQLAlchemy 2.0 `AsyncSession` + `aiomysql`, 인증은 JWT(`get_current_user`, `get_current_admin` Dependency)로 통일되어 있습니다.
-- 세 서비스 모두 Pinecone와 Gemini를 사용하지만 인덱스와 데이터는 서비스별로 분리되어 있습니다.
-
 ---
 
 ## 🙋 My Contribution
@@ -122,27 +69,66 @@ flowchart LR
 **복지정책 추천 서비스 '덜다'의 데이터 · AI · 백엔드 개발 담당**
 
 ### 데이터 파이프라인
-- 중앙부처 API(XML)·서울복지포털·경기청년포털의 서로 다른 응답을 하나의 `NormalizedPolicy` 스키마로 변환하는 **출처별 Normalizer** 구현
-- `(source_name, external_policy_id)` 기준 정책 식별과 **SHA-256 Content Hash 기반 신규/변경/동일 판별** 동기화 로직 구현
-- 3개 출처 수집 → 정규화 → DB 동기화 → 변경분 임베딩을 묶는 **Sync Orchestrator** 와 단계별 실행 이력(`policy_embedding_result`) 설계
-- 관리자 요청 시 실행 ID를 먼저 응답하고, 실제 최신화는 FastAPI `BackgroundTasks`로 **응답 이후 백그라운드에서 실행**한 뒤 실행 ID로 진행 상태를 조회하는 API 구현
-- 수집 클라이언트(중앙부처 API·서울 크롤러)는 팀원이 작성한 기반 코드를 이어받아 수정·연동했습니다.
+- **출처별 Normalizer** — 중앙부처 API(XML)·서울복지포털·경기청년포털의 서로 다른 응답을 하나의 `NormalizedPolicy` 스키마로 변환
+- **Content Hash 기반 동기화** — `(source_name, external_policy_id)` 기준으로 정책을 식별하고, SHA-256 Content Hash로 신규/변경/동일을 판별
+- **Sync Orchestrator** — 3개 출처 수집 → 정규화 → DB 동기화 → 변경분 임베딩을 하나의 흐름으로 묶고, 단계별 실행 이력(`policy_embedding_result`) 설계
+- **정책 최신화 API** — 실행 ID를 먼저 응답하고, 실제 최신화는 FastAPI `BackgroundTasks`로 **응답 이후 백그라운드에서 실행**한 뒤 실행 ID로 진행 상태 조회
+- **수집 클라이언트 연동** — 중앙부처 API·서울 크롤러는 팀원이 작성한 기반 코드를 이어받아 수정·연동
 
 ### AI / 검색
-- 정책 텍스트를 Gemini Embedding(768차원)으로 변환해 Pinecone에 upsert하는 임베딩 서비스 구현
-- MySQL FULLTEXT 검색과 Pinecone 의미 검색을 병렬 실행하고 **RRF로 순위를 결합하는 Hybrid Retrieval** 구현
-- LangChain `create_agent` + Tool(`search_policy_candidates`, `find_policy_by_name`) 기반 추천 Agent와 시스템 프롬프트 설계
-- Agent 결과 상태에 따라 응답을 분기하는 **LangGraph Workflow** 구현
-- **Agent 출력을 검색 후보·지역·연령·성별 조건으로 다시 검증하는 서버 후처리 로직** 구현
-- 추가 질문(최대 2회)·반복 질문 감지·출력 재요청을 포함한 **Stateless 추가 질문 흐름** 구현
+- **정책 임베딩** — 정책 텍스트를 Gemini Embedding(768차원)으로 변환해 Pinecone에 upsert
+- **RRF Hybrid Retrieval** — MySQL FULLTEXT 검색과 Pinecone 의미 검색을 병렬 실행하고 RRF로 순위 결합
+- **추천 Agent** — LangChain `create_agent` + Tool(`search_policy_candidates`, `find_policy_by_name`) 기반 Agent와 시스템 프롬프트 설계
+- **LangGraph Workflow** — Agent 결과 상태에 따라 응답 노드를 분기
+- **Backend Validation** — Agent 출력을 검색 후보·지역·연령·성별 조건으로 서버에서 다시 검증하는 후처리 로직
+- **Stateless 추가 질문** — 추가 질문 최대 2회, 반복 질문 감지, Agent 출력 재요청을 포함한 다중 턴 흐름
 
 ### 백엔드 / 프론트엔드
-- 덜다 API: 맞춤 추천, 정책명 검색, 추천 이력, 정책 상세, 즐겨찾기, 인기 정책, 메인 데이터
-- 덜다 DB 모델 설계: `policy`, `policy_recommendation`, `policy_recommendation_item`, `policy_favorites`, `policy_embedding_result`
-- 관리자 대시보드 API: 기간별(7일·30일·3개월·1년) 집계, KPI, 서비스별 AI 사용량
-- 문의 백엔드 일부, 공지 백엔드 일부, DB 세션 타임존(KST) 설정
-- 덜다 사용자 화면(정책 찾기·추천 결과·정책 상세·덜다 메인)과 관리자 정책 최신화·대시보드 화면 구현
-- 프로젝트 ERD 설계 참여
+- **덜다 API** — 맞춤 추천, 정책명 검색, 추천 이력, 정책 상세, 즐겨찾기, 인기 정책, 메인 데이터
+- **덜다 DB 모델 설계** — `policy`, `policy_recommendation`, `policy_recommendation_item`, `policy_favorites`, `policy_embedding_result`
+- **관리자 대시보드 API** — 기간별(7일·30일·3개월·1년) 집계, KPI, 서비스별 AI 사용량
+- **공통 백엔드 일부** — 문의 백엔드 일부, 공지 백엔드 일부, DB 세션 타임존(KST) 설정
+- **덜다 · 관리자 화면** — 덜다 사용자 화면(정책 찾기·추천 결과·정책 상세·덜다 메인), 관리자 정책 최신화·대시보드 화면 구현
+- **ERD** — 프로젝트 ERD 설계 참여
+
+---
+
+## 🏗 System Architecture
+
+```mermaid
+flowchart TB
+    FE["Frontend · React + Vite<br/>사용자 화면 · 관리자 화면"]
+
+    subgraph BE["FastAPI Backend"]
+        direction LR
+        D["덜다<br/>복지정책 추천"]
+        I["잇다<br/>진로 설계"]
+        N["나누다<br/>돌봄 공유 · 지원기관"]
+        C["공통<br/>인증 · 공지 · 문의 · 대시보드"]
+    end
+
+    subgraph DA["Data / AI"]
+        direction LR
+        M[("MySQL")]
+        P[("Pinecone")]
+        G["Gemini"]
+    end
+
+    subgraph EX["External Data Sources"]
+        direction LR
+        X1["공공 복지정책 API · 지자체 포털<br/>(덜다)"]
+        X2["공공데이터 · 카카오 로컬 API 등<br/>(잇다 · 나누다)"]
+    end
+
+    FE --> BE
+    BE --> DA
+    BE -.->|수집 · 조회| EX
+```
+
+- 하나의 FastAPI 앱에 서비스별 Router(`delda`, `itda`, `nanuda`, `notice`, `inquiry` …)를 등록하는 모듈형 구조입니다.
+- DB 접근은 SQLAlchemy 2.0 `AsyncSession` + `aiomysql`, 인증은 JWT(`get_current_user`, `get_current_admin` Dependency)로 통일되어 있습니다.
+- 세 서비스 모두 Pinecone와 Gemini를 사용하지만 인덱스와 데이터는 서비스별로 분리되어 있습니다.
+- 덜다의 세부 데이터 흐름은 아래 End-to-End Pipeline에서 다룹니다.
 
 ---
 
@@ -174,6 +160,16 @@ flowchart TB
     DB -.-> HR
     PC -.-> HR
 ```
+
+<!--
+TODO: 덜다 입력 화면 / 추천 결과 화면 (나란히 배치)
+<table>
+  <tr>
+    <td align="center"><img src="docs/images/delda-input.png" width="420" alt="덜다 입력 화면"/><br/><sub>돌봄 상황 입력</sub></td>
+    <td align="center"><img src="docs/images/delda-result.png" width="420" alt="덜다 추천 결과 화면"/><br/><sub>추천 결과</sub></td>
+  </tr>
+</table>
+-->
 
 <details>
 <summary><b>Hybrid RAG Architecture 상세</b></summary>
@@ -254,7 +250,7 @@ flowchart TB
 - Agent의 구조화 출력(`PolicyAgentOutput`)의 `status` 값으로 6개 응답 노드 중 하나로 분기합니다.
 - 모든 노드는 한 번의 요청에서 `END`로 끝나며, 추가 질문은 **다음 HTTP 요청**으로 이어집니다 (아래 Challenge 5).
 
-<!-- TODO: 덜다 입력 화면 / 추천 결과 / 추가 질문 화면 / 정책 상세 캡처 -->
+<!-- TODO: 덜다 추가 질문 화면 / 정책 상세 화면 캡처 -->
 
 ---
 
@@ -305,6 +301,11 @@ flowchart TB
 **결과**
 - 재수집 시 내용이 바뀌지 않은 정책은 DB 업데이트와 임베딩을 모두 건너뜁니다.
 - 관리자는 실행 이력에서 신규·변경·실패 건수와 단계별 진행 상태를 확인할 수 있습니다.
+
+<!--
+TODO: 관리자 정책 데이터 최신화 화면
+<p align="center"><img src="docs/images/admin-policy-sync.png" width="720" alt="관리자 정책 데이터 최신화 화면"/></p>
+-->
 
 ### 3. LLM 추천 결과를 그대로 신뢰할 수 없는 문제 → Backend Validation
 
@@ -611,7 +612,8 @@ npm run dev        # http://localhost:5173, /api 요청은 127.0.0.1:8000으로 
 <!--
 TODO: 화면 캡처 추가 위치
 - 상단: 서비스 메인
-- 덜다 Pipeline 섹션 아래: 덜다 입력 화면 / 추천 결과 / 추가 질문 / 정책 상세
-- Incremental Embedding 섹션: 관리자 정책 관리 · 데이터 최신화 진행 화면
+- 덜다 End-to-End Pipeline 다이어그램 아래: 덜다 입력 화면 / 추천 결과 화면 (나란히)
+- LangGraph Workflow 아래: 추가 질문 / 정책 상세
+- Challenge 2 (Incremental Embedding) 결과 아래: 관리자 정책 관리 · 데이터 최신화 화면
 - Database 섹션: 전체 ERD 이미지
 -->
