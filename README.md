@@ -161,15 +161,11 @@ flowchart TB
     PC -.-> HR
 ```
 
-<!--
-TODO: 덜다 입력 화면 / 추천 결과 화면 (나란히 배치)
-<table>
-  <tr>
-    <td align="center"><img src="docs/images/delda-input.png" width="420" alt="덜다 입력 화면"/><br/><sub>돌봄 상황 입력</sub></td>
-    <td align="center"><img src="docs/images/delda-result.png" width="420" alt="덜다 추천 결과 화면"/><br/><sub>추천 결과</sub></td>
-  </tr>
-</table>
--->
+| 돌봄 상황 입력 | 맞춤 정책 추천 결과 |
+| --- | --- |
+| <img src="https://raw.githubusercontent.com/SY9507/portfolio/main/assets/eum/delda-input.png" width="420" alt="거주 지역과 생활 및 돌봄 상황을 입력하는 덜다 화면"> | <img src="https://raw.githubusercontent.com/SY9507/portfolio/main/assets/eum/delda-result.png" width="420" alt="추천 정책 이름과 추천 이유, 원문 링크가 표시된 덜다 화면"> |
+
+**발표 시연 화면** · 사용자가 돌봄 상황을 입력하면 맞춤 정책과 추천 이유, 정책 원문 링크를 확인할 수 있습니다.
 
 <details>
 <summary><b>Hybrid RAG Architecture 상세</b></summary>
