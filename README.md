@@ -547,9 +547,9 @@ E-eum/
 
 | 담당 | 역할 |
 |---|---|
-| [@SY9507](https://github.com/SY9507) | **덜다** 데이터 파이프라인 · Hybrid RAG · 추천 Agent · API · 화면, 관리자 대시보드, 공지·문의 백엔드 일부 |
-| [@regionse](https://github.com/regionse) | **잇다** 진로 설계 챗봇, 공지·문의·인증, 배포 설정 |
-| [@Kweonyh0](https://github.com/Kweonyh0) | **나누다** 돌봄 공유 · 주간 돌봄 분석 · 지원기관 추천, 알림 · 마이페이지 |
+| [@SY9507](https://github.com/SY9507) | **덜다** 정책 데이터 처리·검색·추천, 관리자 대시보드, 공지·문의 |
+| [@regionse](https://github.com/regionse) | **잇다** 진로 설계 챗봇, 전체 프론트엔드, 인증, 배포 설정 |
+| [@Kweonyh0](https://github.com/Kweonyh0) | **나누다** 돌봄 공유·주간 돌봄 분석·지원기관 추천, 알림·마이페이지 |
 
 <!--
 TODO: 화면 캡처 추가 위치
