@@ -251,32 +251,25 @@ flowchart TB
 
 ## 🔧 Technical Challenges & Solutions
 
-### 1. Keyword Search와 Semantic Search의 결합 → RRF Hybrid Retrieval
+### 1. 키워드 검색과 의미 검색을 순위로 결합 (RRF)
 
 **문제**
-사용자 입력은 "부모님을 1년에서 3년 동안 하루 4시간에서 8시간 돌봄, 생활비·의료비 필요" 같은 **선택값의 조합**인 반면, 정책 문서는 "기준 중위소득", "가족돌봄청년" 같은 **행정 용어와 자격 문장**으로 쓰여 있습니다. 키워드 검색만으로는 표현이 다른 정책을 놓치고, 벡터 검색만으로는 정책명·명시된 조건처럼 정확히 일치해야 하는 단어에 약합니다.
 
-**원인 / 고민**
-두 검색을 함께 쓰려면 결과를 합쳐야 하는데, MySQL FULLTEXT relevance 점수와 벡터 유사도는 **척도가 다릅니다**. 점수를 정규화해 가중합하면 가중치를 정해야 하고, 이를 판단할 평가 데이터가 없는 상태에서 임의로 정하는 것은 근거가 약하다고 판단했습니다.
+사용자는 “부모님을 1년에서 3년 동안 하루 4시간에서 8시간 돌보고 있고, 생활비와 의료비 지원이 필요해요”처럼 자신의 상황을 입력합니다. 정책 문서는 “기준 중위소득”, “가족돌봄청년” 같은 행정 용어를 사용합니다. 키워드 검색은 정책명처럼 정확한 표현을 찾는 데 유리하고, 의미 검색은 표현이 달라도 상황이 비슷한 정책을 찾는 데 유리합니다.
+
+**설계 판단**
+
+MySQL FULLTEXT 점수와 벡터 유사도는 척도가 달라 그대로 합치기 어렵습니다. 검색별 가중치를 정할 평가 데이터가 없어, 각 검색의 순위를 기준으로 결과를 결합하는 RRF(Reciprocal Rank Fusion)를 적용했습니다.
 
 **해결**
-- 점수 대신 **각 검색의 순위만 사용하는 RRF(Reciprocal Rank Fusion)** 로 결합했습니다.
 
-  ```python
-  # policy_retrieval_service.py
-  RRF_K = 60
-  for rank, policy_id in enumerate(fulltext_ids, start=1):
-      scores[policy_id] = scores.get(policy_id, 0) + 1 / (RRF_K + rank)
-  for rank, policy_id in enumerate(vector_ids, start=1):
-      scores[policy_id] = scores.get(policy_id, 0) + 1 / (RRF_K + rank)
-  ```
-- 같은 Context에서 의미 검색용 자연어 문장과 FULLTEXT용 키워드 쿼리를 **각각 생성**해 검색 특성에 맞는 입력을 넣었습니다.
-- 두 검색은 `asyncio.gather`로 병렬 실행하고, 동기 SDK 호출은 `asyncio.to_thread`로 분리했습니다.
+- 같은 사용자 입력에서 키워드 검색용 단어와 의미 검색용 문장을 각각 만들었습니다.
+- 두 검색은 `asyncio.gather`로 동시에 실행하고, 동기 SDK 호출은 `asyncio.to_thread`로 분리했습니다.
+- 각 검색에서 순위가 높을수록 더 큰 점수를 부여하고, 두 결과에 모두 나온 정책은 각 순위에서 얻은 점수를 합산했습니다.
 
 **결과**
-- 점수 정규화나 가중치 튜닝 없이 서로 다른 검색 결과를 하나의 후보 목록으로 결합할 수 있게 되었습니다.
-- 두 검색에서 모두 상위에 오른 정책이 우선되면서도, 한쪽 검색에만 걸린 정책도 후보에 남습니다.
-- 두 검색이 순차 대기하지 않고 동시에 진행됩니다.
+
+별도의 점수 정규화나 가중치 설정 없이 두 검색 결과를 하나의 후보 목록으로 합쳤습니다. 한쪽 검색에서만 나온 정책도 후보에 남습니다.
 
 ### 2. 매번 전체를 다시 임베딩하는 비효율 → Content Hash 기반 Incremental Embedding
 
