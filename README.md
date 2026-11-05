@@ -155,6 +155,8 @@ flowchart TB
     PC -.-> HR
 ```
 
+신규·변경 정책의 텍스트를 Gemini로 768차원 벡터로 변환해 Pinecone에 저장합니다.
+
 | 돌봄 상황 입력 | 맞춤 정책 추천 결과 |
 | --- | --- |
 | <img src="https://raw.githubusercontent.com/SY9507/portfolio/main/assets/eum/delda-input.png" width="420" alt="거주 지역과 생활 및 돌봄 상황을 입력하는 덜다 화면"> | <img src="https://raw.githubusercontent.com/SY9507/portfolio/main/assets/eum/delda-result.png" width="420" alt="추천 정책 이름과 추천 이유, 원문 링크가 표시된 덜다 화면"> |
@@ -237,6 +239,7 @@ flowchart TB
     U --> E0
 ```
 
+- 추천 Agent는 정책 후보를 검색하는 `search_policy_candidates`와 정책명으로 조회하는 `find_policy_by_name`을 사용합니다.
 - Agent의 구조화 출력(`PolicyAgentOutput`)의 `status` 값으로 6개 응답 노드 중 하나로 분기합니다.
 - 모든 노드는 한 번의 요청에서 `END`로 끝나며, 추가 질문은 **다음 HTTP 요청**으로 이어집니다 (아래 Challenge 5).
 
@@ -423,6 +426,8 @@ erDiagram
         int failed_count
     }
 ```
+
+`policy`는 정책 데이터, `policy_recommendation`은 추천 요청 이력, `policy_recommendation_item`은 개별 추천 결과, `policy_favorites`는 즐겨찾기, `policy_embedding_result`는 정책 최신화 실행 이력을 저장합니다.
 
 | 설계 포인트 | 내용 |
 |---|---|
