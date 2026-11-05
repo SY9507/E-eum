@@ -22,8 +22,7 @@ KDT 교육과정 중간 팀 프로젝트 · 팀 **다정다감** (3인) · 2026.
 
 <!-- TODO: 서비스 메인 화면 캡처 (docs/images/main.png) -->
 
-> **My Role** — 복지정책 추천 서비스 **'덜다'의 데이터 · AI · 백엔드 개발**
-> 공공 정책 데이터 정규화·동기화 파이프라인, Content Hash 기반 증분 임베딩, MySQL FULLTEXT + Pinecone **RRF Hybrid Retrieval**, LangGraph 기반 추천 Agent와 **LLM 결과 서버 검증 로직**을 구현했습니다.
+> **내 역할** — ‘덜다’의 맞춤 복지정책 추천을 담당했습니다. 여러 출처의 정책 데이터를 같은 형식으로 정리하고, 변경된 정책만 검색에 다시 반영하도록 구현했습니다. 키워드 검색과 의미 검색을 결합해 후보를 찾고, 추천 결과가 사용자의 지역과 자격 조건에 맞는지 서버에서 다시 확인했습니다.
 > → [My Contribution](#-my-contribution) · [Technical Challenges](#-technical-challenges--solutions)
 
 ---
@@ -298,11 +297,6 @@ flowchart TB
 - 재수집 시 내용이 바뀌지 않은 정책은 DB 업데이트와 임베딩을 모두 건너뜁니다.
 - 관리자는 실행 이력에서 신규·변경·실패 건수와 단계별 진행 상태를 확인할 수 있습니다.
 
-<!--
-TODO: 관리자 정책 데이터 최신화 화면
-<p align="center"><img src="docs/images/admin-policy-sync.png" width="720" alt="관리자 정책 데이터 최신화 화면"/></p>
--->
-
 ### 3. LLM 추천 결과를 그대로 신뢰할 수 없는 문제 → Backend Validation
 
 **문제**
@@ -525,6 +519,10 @@ E-eum/
 ---
 
 ## ▶ 실행 방법
+
+맞춤 정책 추천을 로컬에서 실행하려면 MySQL에 정책 데이터와 FULLTEXT 검색 인덱스를 준비하고, Gemini·Pinecone 등 외부 서비스의 환경 변수를 설정해야 합니다.
+
+[덜다 발표 시연 보기](https://www.youtube.com/watch?v=uHLP0Lr0DRI&t=210s)
 
 <details>
 <summary>환경 변수 · Backend · 덜다 데이터 준비 · Frontend 실행 순서 펼치기</summary>
