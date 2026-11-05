@@ -520,64 +520,11 @@ E-eum/
 
 ---
 
-## ▶ 실행 방법
+## ▶ 시연 영상
 
-맞춤 정책 추천을 로컬에서 실행하려면 MySQL에 정책 데이터와 FULLTEXT 검색 인덱스를 준비하고, Gemini·Pinecone 등 외부 서비스의 환경 변수를 설정해야 합니다.
+돌봄 상황을 입력하고 맞춤 복지정책과 추천 이유를 확인하는 과정을 볼 수 있습니다.
 
-[덜다 발표 시연 보기](https://www.youtube.com/watch?v=uHLP0Lr0DRI&t=210s)
-
-<details>
-<summary>환경 변수 · Backend · 덜다 데이터 준비 · Frontend 실행 순서 펼치기</summary>
-
-### 1. 환경 변수
-
-`Backend/app/.env.exmple`을 참고해 `Backend/app/.env`를 작성합니다. 실제 키 값은 저장소에 포함하지 않습니다.
-
-**필요한 환경 변수**
-
-| 구분 | 변수 |
-|---|---|
-| DB | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` |
-| 인증 | `JWT_SECRET_KEY` (비어 있으면 서버 기동 시 오류) |
-| 덜다 | `WELFARE_API_KEY`, `GEMINI_API_KEY`, `PINECONE_API_KEY`, `PINECONE_POLICY_INDEX_NAME`, `POLICY_EMBEDDING_DIMENSION` |
-| 잇다 · 나누다 | `DATA_GO_KR_KEY`, `JINA_API_KEY`, `KAKAO_REST_API_KEY`, `PUBLIC_DATA_API_KEY`, `PINECONE_COURSE_INDEX_NAME`, `PINECONE_INSTITUTION_INDEX_NAME` 등 |
-
-모든 서비스 Router가 하나의 앱에 등록되어 있어, 서버 전체를 기동하려면 잇다·나누다 항목도 필요합니다.
-
-
-### 2. Backend
-
-```bash
-cd Backend
-python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-
-# 서버 실행 (기동 시 모델 기준으로 누락 테이블 생성)
-python -m uvicorn app.main:app --reload --port 8000
-```
-
-### 3. 덜다 데이터 준비
-
-```bash
-cd Backend
-python -m app.delda.scripts.init_pinecone_index    # Pinecone 정책 인덱스 생성
-python -m app.delda.scripts.sync_all_policies      # 3개 출처 수집 → 동기화 → 변경분 임베딩
-```
-
-정책 최신화는 관리자 화면에서도 실행할 수 있습니다 (`POST /admin/policy-sync`).
-
-> MySQL FULLTEXT 검색을 위해 `policy` 테이블의 검색 대상 컬럼에 FULLTEXT INDEX가 필요합니다. 현재 해당 DDL은 저장소에 포함되어 있지 않습니다.
-
-### 4. Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev        # http://localhost:5173, /api 요청은 127.0.0.1:8000으로 프록시
-```
-
-</details>
+[덜다 시연 영상 보기 · 3분 30초부터](https://www.youtube.com/watch?v=uHLP0Lr0DRI&t=210s)
 
 ---
 
